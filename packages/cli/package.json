@@ -1,0 +1,40 @@
+{
+  "name": "@electron-hot-updater/cli",
+  "version": "0.1.0",
+  "description": "CLI tool for Electron hot updates — pack code bundles, generate manifests, local test server",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "ehu": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@electron-hot-updater/core": "workspace:*",
+    "cac": "^6.7.14",
+    "esbuild": "^0.20.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "@types/node": "^20.11.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicepkg/electron-hot-updater",
+    "directory": "packages/cli"
+  },
+  "keywords": ["electron", "hot-update", "cli", "code-bundle"]
+}

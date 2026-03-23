@@ -1,0 +1,35 @@
+{
+  "name": "ehu-demo-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo app for electron-hot-updater",
+  "main": ".vite/build/main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "pack:code-bundle": "ehu pack",
+    "gen:yml": "ehu yml",
+    "fingerprint": "ehu fingerprint",
+    "test:hot-update": "ehu serve --run --auto-bump"
+  },
+  "dependencies": {
+    "@electron-hot-updater/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.6.0",
+    "@electron-forge/maker-deb": "^7.6.0",
+    "@electron-forge/maker-squirrel": "^7.6.0",
+    "@electron-forge/maker-zip": "^7.6.0",
+    "@electron-forge/plugin-vite": "^7.6.0",
+    "@electron-hot-updater/cli": "workspace:*",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "electron": "^33.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.0"
+  }
+}

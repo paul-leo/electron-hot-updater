@@ -1,0 +1,29 @@
+node_modules/
+dist/
+.vite/
+out/
+dist-ehu/
+*.zip
+*.tgz
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Env
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# Test
+.test-update-server/
+coverage/
