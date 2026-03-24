@@ -117,6 +117,23 @@ export interface HotUpdaterConfig {
   autoRelaunch?: boolean
   /** Custom logger. Default: console */
   logger?: Logger
+
+  /**
+   * Enable electron-updater integration for full updates.
+   * When true, automatically detects and uses electron-updater
+   * as fallback when code bundle update is not possible (fingerprint mismatch).
+   * Requires electron-updater as an optional peer dependency.
+   * Default: true (auto-detect)
+   */
+  enableFullUpdater?: boolean
+
+  /** electron-updater specific options (only used when enableFullUpdater is true) */
+  fullUpdater?: {
+    /** Auto download full updates. Default: false */
+    autoDownload?: boolean
+    /** Auto install on app quit. Default: true */
+    autoInstallOnAppQuit?: boolean
+  }
 }
 
 /**

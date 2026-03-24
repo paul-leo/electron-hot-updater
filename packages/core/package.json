@@ -19,10 +19,12 @@
     "clean": "rm -rf dist"
   },
   "peerDependencies": {
-    "electron": ">=20.0.0"
+    "electron": ">=20.0.0",
+    "electron-updater": ">=6.0.0"
   },
   "peerDependenciesMeta": {
-    "electron": { "optional": true }
+    "electron": { "optional": true },
+    "electron-updater": { "optional": true }
   },
   "devDependencies": {
     "electron": "^33.0.0",

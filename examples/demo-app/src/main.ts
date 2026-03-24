@@ -8,6 +8,22 @@ const updater = new HotUpdater({
   updateUrl: process.env.UPDATE_SERVER_URL || 'http://localhost:51973',
   autoCheckInterval: 60 * 60 * 1000, // 1 hour
   autoDownload: false,
+
+  // Optional: electron-updater integration for full updates
+  // When shell fingerprint changes, automatically falls back to full update
+  enableFullUpdater: true,
+  fullUpdater: {
+    autoDownload: false,
+    autoInstallOnAppQuit: true,
+  },
+})
+
+// Full update events (only fires when electron-updater is installed)
+updater.on('full-update-available', (info) => {
+  console.log('[demo] Full update available:', info.version)
+})
+updater.on('full-update-required', () => {
+  console.log('[demo] Full update required (no electron-updater)')
 })
 
 // Register IPC handlers for renderer communication

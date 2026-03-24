@@ -5,16 +5,21 @@ import type { HotUpdater } from './updater'
  * All channels use the 'ehu:' prefix to avoid collisions.
  *
  * Channels:
- * - ehu:check          → checkForUpdate()
- * - ehu:install         → downloadAndInstall(info)
- * - ehu:relaunch        → relaunch()
- * - ehu:status          → getStatus()
- * - ehu:reset           → reset()
- * - ehu:clear-crash     → clearCrashRecord()
+ * - ehu:check           → checkForUpdate()
+ * - ehu:install          → downloadAndInstall(info)
+ * - ehu:relaunch         → relaunch()
+ * - ehu:status           → getStatus()
+ * - ehu:reset            → reset()
+ * - ehu:clear-crash      → clearCrashRecord()
+ * - ehu:full-check       → checkFullUpdate()
+ * - ehu:full-download    → downloadFullUpdate()
+ * - ehu:full-install     → installFullUpdate()
  */
 export function registerIpcHandlers(updater: HotUpdater): void {
   // Lazy import to avoid requiring electron at module load time
   const { ipcMain } = require('electron')
+
+  // --- Code bundle (incremental) ---
 
   ipcMain.handle('ehu:check', async () => {
     return await updater.checkForUpdate()
@@ -39,6 +44,22 @@ export function registerIpcHandlers(updater: HotUpdater): void {
 
   ipcMain.handle('ehu:clear-crash', () => {
     updater.clearCrashRecord()
+    return { success: true }
+  })
+
+  // --- Full update (electron-updater) ---
+
+  ipcMain.handle('ehu:full-check', async () => {
+    return await updater.checkFullUpdate()
+  })
+
+  ipcMain.handle('ehu:full-download', async () => {
+    await updater.downloadFullUpdate()
+    return { success: true }
+  })
+
+  ipcMain.handle('ehu:full-install', (_: unknown, options?: { silent?: boolean }) => {
+    updater.installFullUpdate(options?.silent)
     return { success: true }
   })
 }

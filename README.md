@@ -115,13 +115,15 @@ hooks: {
 ```bash
 # Full release (installer + code bundle)
 electron-forge make            # Build installer
-ehu fingerprint --inject       # Inject fingerprint into packaged bootstrap.js
 ehu pack                       # Build code bundle zip
 ehu yml                        # Generate code-bundle-latest.yml
+ehu publish                    # Publish to GitHub Releases
 
 # Hot update only (no shell changes)
-ehu pack && ehu yml
-# Upload code-bundle/ dir and yml to your CDN
+ehu pack && ehu yml && ehu publish
+
+# Publish with extra assets (e.g., installer)
+ehu publish --assets "out/make/zip/darwin/arm64/MyApp.zip,out/make/squirrel.windows/MyApp.exe"
 ```
 
 ### 7. Test Locally
@@ -143,6 +145,7 @@ This builds a test code bundle, starts a local HTTP server, and launches Electro
 | `ehu yml` | Generate code-bundle-latest.yml |
 | `ehu serve` | Start local test update server |
 | `ehu serve --run` | Same + launch Electron |
+| `ehu publish` | Publish code bundle to GitHub Releases |
 
 ## Safety
 
@@ -157,6 +160,54 @@ This builds a test code bundle, starts a local HTTP server, and launches Electro
 | Runtime | Crash protection (3 crashes / 30s) | Auto-delete bundle, revert |
 | Global | Incremental failure → full update | User doesn't notice |
 
+## electron-updater Integration (Optional)
+
+Install `electron-updater` as a peer dependency to enable automatic full-update fallback:
+
+```bash
+npm install electron-updater
+```
+
+```typescript
+const updater = new HotUpdater({
+  updateUrl: 'https://github.com/user/repo/releases/latest/download',
+  enableFullUpdater: true,  // auto-detect electron-updater
+  fullUpdater: {
+    autoDownload: false,
+    autoInstallOnAppQuit: true,
+  },
+})
+
+// When shell fingerprint changes, HotUpdater automatically
+// falls back to electron-updater for a full app update
+updater.on('full-update-available', (info) => {
+  console.log('Full update available:', info.version)
+})
+```
+
+Without `electron-updater`, HotUpdater emits `'full-update-required'` and you handle it yourself.
+
+## GitHub Releases
+
+Publish code bundles to GitHub Releases with the CLI:
+
+```bash
+ehu pack && ehu yml && ehu publish
+```
+
+Your release will contain:
+```
+v1.0.0/
+  code-bundle-latest.yml      # Manifest for hot updates
+  code-bundle/1.0.0.zip       # Code bundle
+  MyApp-1.0.0.dmg             # (optional) Full installer
+```
+
+Set `updateUrl` to your releases URL:
+```typescript
+updateUrl: 'https://github.com/user/repo/releases/latest/download'
+```
+
 ## Architecture
 
 ```
@@ -165,7 +216,9 @@ Development:  npm start → electron-forge + Vite (normal HMR, no bootstrap)
 Production:   bootstrap.js → resolve code bundle → load main.bundle.js
               └→ no bundle? → load built-in .vite/build/main.js
 
-Hot Update:   check yml → download zip → SHA-512 verify → unzip → atomic replace → relaunch
+Update Flow:  check yml → fingerprint match?
+              ├─ yes → download zip → SHA-512 verify → unzip → relaunch (1s)
+              └─ no  → electron-updater full update (or emit event)
 ```
 
 ## License

@@ -35,6 +35,10 @@ export { httpGet, httpDownloadToFile } from './downloader'
 // Installer
 export { installCodeBundle } from './installer'
 
+// Full updater (electron-updater integration)
+export { FullUpdater } from './full-updater'
+export type { FullUpdateInfo, FullUpdaterConfig } from './full-updater'
+
 // Types
 export type {
   ShellManifest,

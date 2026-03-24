@@ -50,6 +50,18 @@ cli
     await serve({ ...options, port: Number(options.port) })
   })
 
+cli
+  .command('publish', 'Publish code bundle to GitHub Releases')
+  .option('--tag <tag>', 'Release tag (default: v{version})')
+  .option('--draft', 'Create as draft release')
+  .option('--prerelease', 'Mark as pre-release')
+  .option('--assets <files>', 'Extra files to upload (comma-separated)')
+  .action(async (options) => {
+    const { publish } = await import('./commands/publish')
+    const assets = options.assets ? String(options.assets).split(',').map((s: string) => s.trim()) : undefined
+    await publish({ ...options, assets })
+  })
+
 cli.help()
 cli.version('0.1.0')
 

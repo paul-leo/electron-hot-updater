@@ -6,44 +6,6 @@ import path from 'path'
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    // afterCopy runs after app source is copied to the staging directory,
-    // before asar archive is created. This is the correct place to inject bootstrap.js.
-    afterCopy: [
-      (buildPath: string, _electronVersion: string, _platform: string, _arch: string, callback: (err?: Error) => void) => {
-        try {
-          const projectRoot = path.resolve(__dirname)
-          const bootstrapSrc = path.join(projectRoot, 'shell', 'bootstrap.js')
-          if (!fs.existsSync(bootstrapSrc)) {
-            callback()
-            return
-          }
-
-          // Copy bootstrap.js to build path
-          const shellDest = path.join(buildPath, 'shell')
-          fs.mkdirSync(shellDest, { recursive: true })
-          fs.copyFileSync(bootstrapSrc, path.join(shellDest, 'bootstrap.js'))
-
-          // Copy loading.html
-          const loadingSrc = path.join(projectRoot, 'shell', 'loading.html')
-          if (fs.existsSync(loadingSrc)) {
-            fs.copyFileSync(loadingSrc, path.join(shellDest, 'loading.html'))
-          }
-
-          // Modify package.json to point main to bootstrap.js
-          const pkgPath = path.join(buildPath, 'package.json')
-          if (fs.existsSync(pkgPath)) {
-            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
-            pkg.main = 'shell/bootstrap.js'
-            fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2))
-          }
-
-          console.log('[forge] Injected bootstrap.js as production entry point')
-          callback()
-        } catch (err) {
-          callback(err as Error)
-        }
-      },
-    ],
   },
   makers: [
     { name: '@electron-forge/maker-zip', platforms: ['darwin'] },
@@ -72,6 +34,63 @@ const config: ForgeConfig = {
       ],
     }),
   ],
+  hooks: {
+    // postPackage runs after the app is fully packaged.
+    // We modify the asar to inject bootstrap.js and update package.json main.
+    postPackage: async (_config, result) => {
+      for (const outputPath of result.outputPaths) {
+        // Find the app.asar
+        let asarPath: string
+        if (process.platform === 'darwin' || result.platform === 'darwin') {
+          const appName = fs.readdirSync(outputPath).find((f) => f.endsWith('.app'))
+          if (!appName) continue
+          asarPath = path.join(outputPath, appName, 'Contents', 'Resources', 'app.asar')
+        } else {
+          asarPath = path.join(outputPath, 'resources', 'app.asar')
+        }
+
+        if (!fs.existsSync(asarPath)) {
+          console.log('[forge] app.asar not found, skipping bootstrap injection')
+          continue
+        }
+
+        // Extract asar, inject bootstrap, repack
+        const asar = require('@electron/asar')
+        const tmpDir = path.join(outputPath, '_asar_tmp')
+
+        asar.extractAll(asarPath, tmpDir)
+
+        // Copy shell files
+        const projectRoot = path.resolve(__dirname)
+        const shellDest = path.join(tmpDir, 'shell')
+        fs.mkdirSync(shellDest, { recursive: true })
+
+        const bootstrapSrc = path.join(projectRoot, 'shell', 'bootstrap.js')
+        if (fs.existsSync(bootstrapSrc)) {
+          fs.copyFileSync(bootstrapSrc, path.join(shellDest, 'bootstrap.js'))
+        }
+
+        const loadingSrc = path.join(projectRoot, 'shell', 'loading.html')
+        if (fs.existsSync(loadingSrc)) {
+          fs.copyFileSync(loadingSrc, path.join(shellDest, 'loading.html'))
+        }
+
+        // Modify package.json main entry
+        const pkgPath = path.join(tmpDir, 'package.json')
+        if (fs.existsSync(pkgPath)) {
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+          pkg.main = 'shell/bootstrap.js'
+          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2))
+        }
+
+        // Repack asar
+        await asar.createPackage(tmpDir, asarPath)
+        fs.rmSync(tmpDir, { recursive: true, force: true })
+
+        console.log('[forge] Injected bootstrap.js into app.asar')
+      }
+    },
+  },
 }
 
 export default config

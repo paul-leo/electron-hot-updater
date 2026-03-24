@@ -15,6 +15,8 @@ import { parseCodeBundleYml } from './yml-parser'
 import { compareVersions } from './version'
 import { installCodeBundle } from './installer'
 import { clearCrashRecord } from './crash-guard'
+import { FullUpdater } from './full-updater'
+import type { FullUpdateInfo } from './full-updater'
 
 /**
  * HotUpdater — main SDK class for checking, downloading, and installing code bundle updates.
@@ -34,11 +36,39 @@ export class HotUpdater extends EventEmitter {
   private autoCheckTimer: ReturnType<typeof setInterval> | null = null
   private _app: typeof import('electron').app | null = null
   private _mainWindow: import('electron').BrowserWindow | null = null
+  private _fullUpdater: FullUpdater | null = null
 
   constructor(config: HotUpdaterConfig) {
     super()
     this.config = config
     this.logger = config.logger ?? defaultLogger
+
+    // Initialize optional electron-updater integration
+    if (config.enableFullUpdater !== false) {
+      this._fullUpdater = new FullUpdater({
+        autoDownload: config.fullUpdater?.autoDownload ?? false,
+        autoInstallOnAppQuit: config.fullUpdater?.autoInstallOnAppQuit ?? true,
+        logger: this.logger,
+      })
+
+      // Forward full-updater events
+      if (this._fullUpdater.isAvailable) {
+        this._fullUpdater.on('download-progress', (progress: DownloadProgress) => {
+          this.emit('full-download-progress', progress)
+          if (this._mainWindow && !this._mainWindow.isDestroyed()) {
+            this._mainWindow.webContents.send('ehu:full-download-progress', progress)
+          }
+        })
+        this._fullUpdater.on('update-downloaded', (info: FullUpdateInfo) => {
+          this.emit('full-update-downloaded', info)
+        })
+      }
+    }
+  }
+
+  /** Access the optional FullUpdater instance */
+  get fullUpdater(): FullUpdater | null {
+    return this._fullUpdater
   }
 
   /** Set the Electron app reference (lazy to avoid import issues) */
@@ -109,8 +139,19 @@ export class HotUpdater extends EventEmitter {
       if (yml.shellFingerprint && localFp && localFp !== '__SHELL_FINGERPRINT__') {
         if (yml.shellFingerprint !== localFp) {
           this.logger.info('Shell fingerprint mismatch, full update required')
+
+          // Try electron-updater fallback
+          if (this._fullUpdater?.isAvailable) {
+            this.logger.info('Falling back to electron-updater for full update')
+            const fullInfo = await this._fullUpdater.checkForUpdate()
+            if (fullInfo) {
+              this.emit('full-update-available', fullInfo)
+              return { available: false, needFullUpdate: true }
+            }
+          }
+
           const info: UpdateInfo = { available: false, needFullUpdate: true }
-          this.emit('update-not-available', info)
+          this.emit('full-update-required')
           return info
         }
       }
@@ -255,6 +296,34 @@ export class HotUpdater extends EventEmitter {
       this.logger.error(`Reset failed: ${msg}`)
       return { success: false, error: msg }
     }
+  }
+
+  /**
+   * Check for full app update via electron-updater.
+   * Returns null if electron-updater is not available.
+   */
+  async checkFullUpdate(): Promise<FullUpdateInfo | null> {
+    if (!this._fullUpdater?.isAvailable) {
+      this.logger.info('Full updater not available')
+      return null
+    }
+    return this._fullUpdater.checkForUpdate()
+  }
+
+  /**
+   * Download full app update via electron-updater.
+   */
+  async downloadFullUpdate(): Promise<void> {
+    if (!this._fullUpdater?.isAvailable) return
+    await this._fullUpdater.downloadUpdate()
+  }
+
+  /**
+   * Install full app update and restart (quitAndInstall).
+   */
+  installFullUpdate(isSilent = false): void {
+    if (!this._fullUpdater?.isAvailable) return
+    this._fullUpdater.quitAndInstall(isSilent)
   }
 
   /**

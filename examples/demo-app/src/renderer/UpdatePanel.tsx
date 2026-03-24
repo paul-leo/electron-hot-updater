@@ -23,6 +23,12 @@ interface DownloadProgress {
   total: number
 }
 
+interface FullUpdateInfo {
+  version: string
+  releaseDate?: string
+  releaseNotes?: string | null
+}
+
 declare global {
   interface Window {
     hotUpdater: {
@@ -33,6 +39,11 @@ declare global {
       reset: () => Promise<{ success: boolean }>
       clearCrash: () => Promise<{ success: boolean }>
       onDownloadProgress: (cb: (data: DownloadProgress) => void) => () => void
+      // Full update (electron-updater)
+      checkFullUpdate: () => Promise<FullUpdateInfo | null>
+      downloadFullUpdate: () => Promise<{ success: boolean }>
+      installFullUpdate: (options?: { silent?: boolean }) => Promise<{ success: boolean }>
+      onFullDownloadProgress: (cb: (data: DownloadProgress) => void) => () => void
     }
   }
 }
@@ -122,12 +133,29 @@ const UpdatePanel: React.FC = () => {
 
     if (info.available) {
       setUpdateInfo(info)
-      setMessage(`Update available: v${info.version}`)
+      setMessage(`Code bundle update available: v${info.version}`)
     } else if (info.needFullUpdate) {
-      setMessage('Shell fingerprint changed. Full update required.')
+      setMessage('Shell changed. Checking for full update...')
+      // Try full update
+      const fullInfo = await window.hotUpdater.checkFullUpdate()
+      if (fullInfo) {
+        setMessage(`Full update available: v${fullInfo.version}`)
+      } else {
+        setMessage('Full update required but electron-updater not available.')
+      }
     } else {
       setMessage('Already up to date.')
     }
+  }
+
+  async function handleFullDownload() {
+    setMessage('Downloading full update...')
+    await window.hotUpdater.downloadFullUpdate()
+    setMessage('Full update downloaded. Click "Install Full Update" to apply.')
+  }
+
+  async function handleFullInstall() {
+    await window.hotUpdater.installFullUpdate()
   }
 
   async function handleInstall() {
