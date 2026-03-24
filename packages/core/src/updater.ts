@@ -67,6 +67,13 @@ export class HotUpdater extends EventEmitter {
     return process.env.SHELL_FINGERPRINT || ''
   }
 
+  /** Safely emit 'error' — only if there are listeners, to avoid unhandled throw */
+  private safeEmitError(e: unknown): void {
+    if (this.listenerCount('error') > 0) {
+      this.emit('error', e)
+    }
+  }
+
   private get ymlUrl(): string {
     const base = this.config.updateUrl.replace(/\/$/, '')
     return `${base}/code-bundle-latest.yml`
@@ -132,7 +139,7 @@ export class HotUpdater extends EventEmitter {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)
       this.logger.error(`Update check failed: ${msg}`)
-      this.emit('error', e)
+      this.safeEmitError(e)
       return { available: false }
     }
   }
@@ -185,7 +192,7 @@ export class HotUpdater extends EventEmitter {
           this.relaunch()
         }
       } else {
-        this.emit('error', new Error(result.error))
+        this.safeEmitError(new Error(result.error))
       }
 
       return result
@@ -193,7 +200,7 @@ export class HotUpdater extends EventEmitter {
       try { if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath) } catch { /* ignore */ }
       const msg = e instanceof Error ? e.message : String(e)
       this.logger.error(`Download/install failed: ${msg}`)
-      this.emit('error', e)
+      this.safeEmitError(e)
       return { success: false, error: msg }
     }
   }
@@ -268,8 +275,13 @@ export class HotUpdater extends EventEmitter {
     this.logger.info(`Auto-check enabled: every ${interval / 1000}s`)
 
     // Initial check after short delay
-    setTimeout(() => this.checkForUpdate(), 5000)
-    this.autoCheckTimer = setInterval(() => this.checkForUpdate(), interval)
+    const safeCheck = () => {
+      this.checkForUpdate().catch((e) => {
+        this.logger.error(`Auto-check failed: ${e instanceof Error ? e.message : String(e)}`)
+      })
+    }
+    setTimeout(safeCheck, 5000)
+    this.autoCheckTimer = setInterval(safeCheck, interval)
   }
 
   /**

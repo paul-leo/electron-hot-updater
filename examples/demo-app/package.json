@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Demo app for electron-hot-updater",
-  "main": ".vite/build/main.js",
+  "main": "shell/bootstrap.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",

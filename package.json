@@ -1,5 +1,6 @@
 {
   "name": "electron-hot-updater",
+  "version": "0.1.0",
   "private": true,
   "description": "Incremental hot update solution for Electron apps — split Shell & Code Bundle",
   "scripts": {
