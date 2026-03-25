@@ -51,11 +51,9 @@ export default defineConfig({
       'shell/bootstrap.js',
       'shell/loading.html',
     ],
-    dependencies: [
-      'electron',
-      // Add native dependencies here, e.g.:
-      // 'better-sqlite3',
-    ],
+    // All production dependencies from package.json are auto-hashed.
+    // Uncomment below to exclude specific packages:
+    // ignoreDependencies: ['some-pure-js-dep'],
   },
 
   main: {

@@ -39,7 +39,7 @@ function hashDir(hash: crypto.Hash, dir: string): void {
 
 /**
  * Compute Shell fingerprint — a 16-char hex SHA-256 hash based on:
- * 1. Critical dependency versions (from package.json)
+ * 1. Production dependency versions (from package.json dependencies, NOT devDependencies)
  * 2. Shell layer file contents
  *
  * Any change to these → new fingerprint → full update required.
@@ -49,12 +49,30 @@ export function computeShellFingerprint(options: FingerprintOptions): string {
   const { manifest } = options
   const hash = crypto.createHash('sha256')
 
-  // 1. Critical dependency versions
+  // 1. Production dependency versions
   const pkgPath = path.join(root, 'package.json')
   if (fs.existsSync(pkgPath)) {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
-    for (const dep of manifest.dependencies) {
-      const ver = pkg.dependencies?.[dep] || pkg.devDependencies?.[dep] || 'none'
+
+    let depsToHash: string[]
+
+    if (manifest.dependencies && manifest.dependencies.length > 0) {
+      // Legacy whitelist mode (deprecated)
+      console.warn(
+        '[ehu] shell.dependencies is deprecated. '
+        + 'All package.json dependencies are now auto-hashed. '
+        + 'Use shell.ignoreDependencies to exclude specific packages.',
+      )
+      depsToHash = [...manifest.dependencies].sort()
+    } else {
+      // Auto mode: hash all production dependencies, excluding ignoreDependencies
+      const allDeps = Object.keys(pkg.dependencies || {})
+      const ignore = new Set(manifest.ignoreDependencies || [])
+      depsToHash = allDeps.filter(d => !ignore.has(d)).sort()
+    }
+
+    for (const dep of depsToHash) {
+      const ver = pkg.dependencies?.[dep] || 'none'
       hash.update(`dep:${dep}:${ver}\n`)
     }
   }

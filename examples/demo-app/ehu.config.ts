@@ -6,9 +6,8 @@ export default defineConfig({
       'shell/bootstrap.js',
       'shell/loading.html',
     ],
-    dependencies: [
-      'electron',
-    ],
+    // All production dependencies are auto-hashed from package.json.
+    // ignoreDependencies: [],
   },
 
   main: {

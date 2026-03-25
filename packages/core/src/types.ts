@@ -5,8 +5,14 @@
 export interface ShellManifest {
   /** File paths or directories (relative to project root) whose content affects the fingerprint */
   files: string[]
-  /** npm dependency names whose versions affect the fingerprint */
-  dependencies: string[]
+  /**
+   * @deprecated All production dependencies from package.json are now auto-hashed.
+   * Use `ignoreDependencies` to exclude specific packages instead.
+   * If provided, only these listed deps are hashed (legacy whitelist mode).
+   */
+  dependencies?: string[]
+  /** Package names to exclude from auto-hashing (only used when `dependencies` is not set) */
+  ignoreDependencies?: string[]
 }
 
 /**

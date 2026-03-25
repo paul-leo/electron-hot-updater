@@ -23,6 +23,7 @@
     "@electron-forge/maker-zip": "^7.6.0",
     "@electron-forge/plugin-vite": "^7.6.0",
     "@electron-hot-updater/cli": "workspace:*",
+    "@electron-hot-updater/vite": "workspace:*",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "@vitejs/plugin-react": "^4.2.1",

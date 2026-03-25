@@ -6,8 +6,13 @@ export interface EhuConfig {
   shell: {
     /** File paths or directory globs relative to project root */
     files: string[]
-    /** npm package names whose versions affect the fingerprint */
-    dependencies: string[]
+    /**
+     * @deprecated All production dependencies from package.json are now auto-hashed.
+     * Use `ignoreDependencies` to exclude specific packages instead.
+     */
+    dependencies?: string[]
+    /** Package names to exclude from auto-hashing */
+    ignoreDependencies?: string[]
   }
 
   /** Main process bundling options */
